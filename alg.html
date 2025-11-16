@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page History Stack App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind configuration for custom colors and fonts
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#4285F4', 
+                        'light-gray': '#f5f7fa',
+                        'card-border': '#e0e0e0',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base CSS for layout and visibility */
+        body {
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+        }
+        .page-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .page {
+            display: none; /* Pages are hidden by default */
+        }
+        .page.active {
+            display: block; /* JavaScript shows the active page */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container" class="w-full max-w-sm sm:max-w-md p-4">
+        
+        <div class="page-card bg-white rounded-xl border border-card-border overflow-hidden">
+            
+            <header class="p-6 sm:p-8 pb-4">
+                <span class="text-xl font-bold text-gray-800 tracking-wider">Revolutie</span>
+            </header>
+            
+            <div class="px-6 sm:px-8 pt-0 pb-6">
+
+                <div id="signup" class="page active">
+                    <h2 class="text-2xl font-semibold mb-1 text-gray-900">Sign Up</h2>
+                    <p class="text-sm text-gray-500 mb-6">Create an account to continue.</p>
+
+                    <form id="form-signup" onsubmit="event.preventDefault()">
+                        <div class="mb-4">
+                            <label for="signup-email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="signup-email" name="email" placeholder="jonas.kahnwald@email.com"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-150" required>
+                        </div>
+                        <div class="mb-6">
+                            <label for="signup-password" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" id="signup-password" name="password" placeholder="••••••••"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-150" required>
+                        </div>
+                    </form>
+
+                    <div class="flex justify-end gap-2">
+                        <button onclick="navigate('login')" class="flex-1 px-4 py-2 bg-primary-blue text-white font-medium rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                            Front &gt;
+                        </button>
+                    </div>
+                </div>
+
+                <div id="login" class="page">
+                    <h2 class="text-2xl font-semibold mb-1 text-gray-900">Sign In</h2>
+                    <p class="text-sm text-gray-500 mb-6">Please login to continue to your account.</p>
+
+                    <form id="form-login" onsubmit="event.preventDefault()">
+                        <div class="mb-4">
+                            <label for="login-email" class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="login-email" name="email" placeholder="your.email@example.com"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-150" required>
+                        </div>
+                        <div class="mb-6">
+                            <label for="login-password" class="block text-xs font-medium text-gray-700 mb-1">Password</label>
+                            <input type="password" id="login-password" name="password" placeholder="••••••••"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-150" required>
+                        </div>
+                        <div class="mb-6 flex items-center">
+                            <input id="login-remember" name="remember" type="checkbox" class="h-4 w-4 text-primary-blue border-gray-300 rounded focus:ring-primary-blue">
+                            <label for="login-remember" class="ml-2 block text-sm text-gray-900">
+                                Keep me logged in
+                            </label>
+                        </div>
+                    </form>
+
+                    <div class="flex justify-between gap-3">
+                        <button id="login-back-btn" onclick="goBack()" disabled
+                                class="w-full px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                            &lt; Backward
+                        </button>
+                        
+                        <button id="login-forward-btn" onclick="handleForwardOnLogin()"
+                                class="w-full px-4 py-2 bg-primary-blue text-white font-medium rounded-lg hover:bg-blue-600 transition duration-150 shadow-md">
+                            Forward &gt;
+                        </button>
+                    </div>
+                </div>
+
+                <div id="main-content" class="page">
+                    <h2 class="text-2xl font-semibold mb-1 text-gray-900">Dashboard</h2>
+                    <p class="text-sm text-gray-500 mb-6">Welcome! You are on the main application page.</p>
+                    
+                    <div id="data-display" class="bg-light-gray p-4 rounded-lg text-sm mb-6 max-h-40 overflow-y-auto">
+                        <p class="font-medium text-gray-700 mb-1">History Stack Size (Back): <span id="h-stack-size" class="font-bold">0</span></p>
+                        <p class="font-medium text-gray-700 mb-3">Redo Stack Size (Front): <span id="r-stack-size" class="font-bold">0</span></p>
+                        <p class="text-gray-600 mt-2">
+                            <span class="font-bold">Last Login Data:</span><br>
+                            <code id="login-data-preview" class="text-xs text-wrap break-all">{}</code>
+                        </p>
+                    </div>
+                    <p class="text-sm text-gray-500 italic">Use the navigation bar below to go back or forward.</p>
+                </div>
+
+            </div>
+            
+            <nav id="global-nav" class="bg-gray-100 border-t border-card-border p-4 flex justify-between items-center">
+                <div class="text-sm font-medium text-gray-700">Page: <span id="current-page-label">Signup</span></div>
+                <div class="flex gap-2">
+                    <button id="main-back-btn" onclick="goBack()" disabled
+                            class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                        &lt; Backward
+                    </button>
+                    <button id="main-front-btn" onclick="goFrontFromRedo()" disabled
+                            class="px-4 py-2 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 transition duration-150 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                        Front &gt;
+                    </button>
+                </div>
+            </nav>
+
+        </div>
+    </div>
+
+    <script>
+        // The two stacks (arrays in JavaScript) for state management
+        let historyStack = []; // H-Stack: Stores states for 'Back' (Ctrl+Z)
+        let redoStack = [];    // R-Stack: Stores states for 'Front/Redo' (Ctrl+Y)
+        let currentPageId = 'signup';
+
+        // Helper function to get the current form data as an object
+        function getCurrentFormData(pageId) {
+            const form = document.getElementById(`form-${pageId}`);
+            if (!form) return {};
+            
+            const formData = {};
+            const inputs = form.querySelectorAll('input');
+
+            inputs.forEach(input => {
+                formData[input.name] = (input.type === 'checkbox') ? input.checked : input.value;
+            });
+            return formData;
+        }
+
+        // Helper function to fill form fields from a state object
+        function populateForm(pageId, formData) {
+            const form = document.getElementById(`form-${pageId}`);
+            if (!form) return;
+
+            for (const key in formData) {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        input.checked = formData[key];
+                    } else {
+                        input.value = formData[key];
+                    }
+                }
+            }
+        }
+
+        // Handles page visibility and updates status labels
+        function updateUI(newPageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            
+            const targetId = (newPageId === 'main') ? 'main-content' : newPageId;
+            const targetPage = document.getElementById(targetId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+            
+            currentPageId = newPageId;
+            document.getElementById('current-page-label').textContent = newPageId.charAt(0).toUpperCase() + newPageId.slice(1);
+
+            updateButtonStates();
+            updateDataDisplay();
+        }
+
+        // Saves the current state to the HistoryStack (H-Stack)
+        function saveCurrentState() {
+            const state = {
+                pageId: currentPageId,
+                formData: getCurrentFormData(currentPageId)
+            };
+            historyStack.push(state);
+        }
+
+        // --- Core Navigation Functions ---
+        
+        // 1. Forward Navigation (New Path)
+        function navigate(targetPageId) {
+            saveCurrentState();
+            redoStack = []; // Clear R-Stack on new path
+            updateUI(targetPageId);
+        }
+
+        // 2. Backward Navigation (Undo/Back)
+        function goBack() {
+            if (historyStack.length <= 1) { return; }
+
+            // Save current state to Redo Stack
+            const currentStateForRedo = { pageId: currentPageId, formData: getCurrentFormData(currentPageId) };
+            redoStack.push(currentStateForRedo);
+
+            // Pop previous state from History Stack
+            const previousState = historyStack.pop();
+
+            // Restore state and navigate
+            populateForm(previousState.pageId, previousState.formData);
+            updateUI(previousState.pageId);
+        }
+
+        // 3. Redo Navigation (Front/Redo)
+        function goFrontFromRedo() {
+            if (redoStack.length === 0) return;
+
+            // Save current state to History Stack
+            saveCurrentState();
+
+            // Pop next state from Redo Stack
+            const nextState = redoStack.pop();
+
+            // Restore state and navigate
+            populateForm(nextState.pageId, nextState.formData);
+            updateUI(nextState.pageId);
+        }
+
+        // Logic for the Login page's Forward button
+        function handleForwardOnLogin() {
+            if (redoStack.length > 0) {
+                goFrontFromRedo(); // Acts as REDO if the R-Stack has data
+            } else {
+                navigate('main'); // Acts as normal FORWARD if starting a new path
+            }
+        }
+        
+        // --- UI and Utility ---
+
+        function updateButtonStates() {
+            const loginBack = document.getElementById('login-back-btn');
+            const loginForward = document.getElementById('login-forward-btn');
+            const mainBack = document.getElementById('main-back-btn');
+            const mainFront = document.getElementById('main-front-btn');
+
+            const canGoBack = historyStack.length > 1;
+            const canGoForward = redoStack.length > 0;
+
+            // Update disabled status
+            if (loginBack) loginBack.disabled = !canGoBack;
+            if (mainBack) mainBack.disabled = !canGoBack;
+            
+            // Update Login Forward button to reflect Redo availability
+            if (loginForward) {
+                if (canGoForward && currentPageId === 'login') {
+                    loginForward.textContent = 'Front (Redo) >';
+                    loginForward.classList.replace('bg-primary-blue', 'bg-orange-500');
+                } else {
+                    loginForward.textContent = 'Forward >';
+                    loginForward.classList.replace('bg-orange-500', 'bg-primary-blue');
+                }
+            }
+            
+            // Update Main Front button (only acts as Redo)
+            if (mainFront) {
+                mainFront.disabled = !canGoForward;
+                mainFront.textContent = canGoForward ? 'Front (Redo) >' : 'Front >';
+                mainFront.classList.toggle('bg-primary-blue', canGoForward);
+                mainFront.classList.toggle('bg-gray-500', !canGoForward);
+            }
+        }
+        
+        // Updates the status display
+        function updateDataDisplay() {
+            document.getElementById('h-stack-size').textContent = historyStack.length;
+            document.getElementById('r-stack-size').textContent = redoStack.length;
+
+            const lastLoginState = historyStack.findLast(s => s.pageId === 'login') || redoStack.findLast(s => s.pageId === 'login');
+            
+            const loginDataElem = document.getElementById('login-data-preview');
+            
+            if (loginDataElem && lastLoginState) {
+                // Display data, excluding the password field
+                const dataToDisplay = { ...lastLoginState.formData };
+                delete dataToDisplay.password;
+                loginDataElem.textContent = JSON.stringify(dataToDisplay);
+            } else if (loginDataElem) {
+                 loginDataElem.textContent = "No login data saved yet.";
+            }
+        }
+
+
+        // Initialization
+        window.onload = () => {
+            // Initial state pushed to history (H-Stack size 1)
+            historyStack.push({ pageId: 'signup', formData: getCurrentFormData('signup') });
+            updateButtonStates();
+            updateDataDisplay();
+
+            // Setup listeners to capture data changes in real-time
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('change', updateDataDisplay);
+                input.addEventListener('keyup', updateDataDisplay);
+            });
+        };
+    </script>
+</body>
+</html>
